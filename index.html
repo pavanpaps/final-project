@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bahirang: Unmasking DeepFakes using Machine Learning</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    #image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    #image-preview {
+      max-width: 300px;
+      max-height: 300px;
+    }
+
+    #output-image {
+      max-width: 800px;
+      max-height: 800px;
+      margin: 0 auto;
+      display: block;
+      margin-top: 20px;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      cursor: pointer;
+      transition-duration: 0.4s;
+      margin: 0 10px;
+      width: 150px;
+    }
+
+    .button:hover {
+      background-color: #45a049;
+    }
+
+    #filename {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    #progress-bar {
+      width: 100%;
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    #progress {
+      width: 0;
+      height: 20px;
+      background-color: #4CAF50;
+      border-radius: 5px;
+      transition: width 0.3s ease-in-out;
+    }
+
+    #progress-text {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Bahirang: Unmasking DeepFakes using Machine Learning</h1>
+  <div id="image-container">
+    <img id="image-preview" src="" alt="Image Preview">
+  </div>
+  <div class="button-container">
+    <label for="file-input" class="button">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 5px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      Choose Image
+    </label>
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+    <button class="button" id="detect-button">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 5px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+      </svg>
+      Detect Deepfake
+    </button>
+  </div>
+  <div id="progress-bar">
+    <div id="progress"></div>
+  </div>
+  <div id="progress-text"></div>
+  <div id="filename"></div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const detectButton = document.getElementById('detect-button');
+    const imagePreview = document.getElementById('image-preview');
+    const filenameDiv = document.getElementById('filename');
+    const progressBar = document.getElementById('progress');
+    const progressText = document.getElementById('progress-text');
+
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          imagePreview.src = e.target.result;
+        };
+
+        reader.readAsDataURL(fileInput.files[0]);
+
+        filenameDiv.textContent = 'Selected File: ' + fileInput.files[0].name;
+      }
+    });
+
+    detectButton.addEventListener('click', function () {
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select an image file.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Processing Image, please wait...';
+
+      fetch('/detect_deepfake', {
+          method: 'POST',
+          body: formData,
+          onUploadProgress: function (progressEvent) {
+            const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+            progressBar.style.width = progress + '%';
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          const outputImage = document.createElement('img');
+          outputImage.id = 'output-image';
+          outputImage.src = 'data:image/png;base64,' + data.output_image;
+
+          const newTab = window.open();
+          newTab.document.body.appendChild(outputImage);
+
+          progressBar.style.width = '100%';
+          progressText.textContent = '';
+
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+  </script>
+</body>
+
+</html>
